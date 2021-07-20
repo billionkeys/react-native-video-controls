@@ -505,16 +505,14 @@ export default class VideoPlayer extends Component {
    * Toggle playing state on <Video> component
    */
   _togglePlayPause() {
-    let state = this.state;
-    state.paused = !state.paused;
+    const state = this.state;
+    this.props?.setPaused((state) =>!state)
 
     if (state.paused) {
       typeof this.events.onPause === 'function' && this.events.onPause();
     } else {
       typeof this.events.onPlay === 'function' && this.events.onPlay();
     }
-
-    this.setState(state);
   }
 
   /**
