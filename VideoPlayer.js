@@ -12,6 +12,7 @@ import {
   Image,
   View,
   Text,
+  TouchableOpacity,
 } from 'react-native';
 import padStart from 'lodash/padStart';
 
@@ -998,26 +999,30 @@ export default class VideoPlayer extends Component {
     );
   }
 
+  setVolume (muted) {
+    this?.setState?.({
+      muted
+    })
+  }
+
   /**
    * Render the volume slider and attach the pan handlers
    */
   renderVolume() {
+    this.props.setMuted((muted)=>this.setVolume(muted))
     return (
       <View style={styles.volume.container}>
-        <View
-          style={[styles.volume.fill, {width: this.state.volumeFillWidth}]}
-        />
-        <View
-          style={[styles.volume.track, {width: this.state.volumeTrackWidth}]}
-        />
-        <View
-          style={[styles.volume.handle, {left: this.state.volumePosition}]}
-          {...this.player.volumePanResponder.panHandlers}>
+        <TouchableOpacity
+          style={[styles.volume.handle, {right: -30}]}
+          onPress={()=> {
+            this.props?.handleVolume(this.state.muted)
+          }}
+          >
           <Image
             style={styles.volume.icon}
-            source={require('./assets/img/volume.png')}
+            source={this.state.muted?require('./assets/img/mute.png'):require('./assets/img/unmute.png')}
           />
-        </View>
+        </TouchableOpacity>
       </View>
     );
   }
