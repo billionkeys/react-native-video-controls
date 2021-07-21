@@ -162,12 +162,19 @@ export default class VideoPlayer extends Component {
     };
   }
 
-  componentDidUpdate = prevProps => {
+  componentDidUpdate = (prevProps, prevState) => {
     const {isFullscreen} = this.props;
 
     if (prevProps.isFullscreen !== isFullscreen) {
       this.setState({
         isFullscreen,
+      });
+    }
+    if (prevState.muted !== this.state.muted && !this.state.muted) {
+      const position = this.calculateVolumePositionFromVolume();
+      this.setVolumePosition(position);
+      this.setState({
+        volumeOffset: position,
       });
     }
   };
@@ -506,7 +513,7 @@ export default class VideoPlayer extends Component {
    */
   _togglePlayPause() {
     const state = this.state;
-    this.props?.setPaused((state) =>!state)
+    this.props?.setPaused((state) => !state);
 
     if (state.paused) {
       typeof this.events.onPause === 'function' && this.events.onPause();
@@ -883,12 +890,14 @@ export default class VideoPlayer extends Component {
         state.volume = this.calculateVolumeFromVolumePosition();
 
         if (state.volume <= 0) {
-          state.muted = true;
+          this.props?.handleVolume(false);
         } else {
-          state.muted = false;
+          this.props?.handleVolume(true);
         }
 
-        this.setState(state);
+        this.setState({
+          volume: state.volume,
+        });
       },
 
       /**
@@ -997,34 +1006,42 @@ export default class VideoPlayer extends Component {
     );
   }
 
-  setVolume (muted) {
-    this?.setState?.({
-      muted
-    })
+  setVolume(muted) {
+    muted && this.setVolumePosition(0);
+    muted
+      ? this?.setState?.({
+          muted,
+          volumeOffset: 0,
+        })
+      : this?.setState?.({
+          muted,
+        });
   }
 
   /**
    * Render the volume slider and attach the pan handlers
    */
+
   renderVolume() {
-    this.props.setMuted((muted)=>this.setVolume(muted))
     return (
       <View style={styles.volume.container}>
-        <TouchableOpacity
-          style={[styles.volume.handle, {right: -30}]}
-          onPress={()=> {
-            this.props?.handleVolume(this.state.muted)
-          }}
-          >
+        <View
+          style={[styles.volume.fill, {width: this.state.volumeFillWidth}]}
+        />
+        <View
+          style={[styles.volume.track, {width: this.state.volumeTrackWidth}]}
+        />
+        <View
+          style={[styles.volume.handle, {left: this.state.volumePosition}]}
+          {...this.player.volumePanResponder.panHandlers}>
           <Image
             style={styles.volume.icon}
-            source={this.state.muted?require('./assets/img/mute.png'):require('./assets/img/unmute.png')}
+            source={require('./assets/img/volume.png')}
           />
-        </TouchableOpacity>
+        </View>
       </View>
     );
   }
-
   /**
    * Render fullscreen toggle and set icon based on the fullscreen state.
    */
@@ -1037,6 +1054,26 @@ export default class VideoPlayer extends Component {
       <Image source={source} />,
       this.methods.toggleFullscreen,
       styles.controls.fullscreen,
+    );
+  }
+
+  renderMute() {
+    this.props.setMuted((muted) => this.setVolume(muted));
+    return (
+      <TouchableOpacity
+        style={{padding: 10, marginRight: 5}}
+        onPress={() => {
+          this.props?.handleVolume(this.state.muted);
+        }}>
+        <Image
+          style={{width: 20, height: 20}}
+          source={
+            this.state.muted
+              ? require('./assets/img/mute.png')
+              : require('./assets/img/unmute.png')
+          }
+        />
+      </TouchableOpacity>
     );
   }
 
@@ -1054,6 +1091,10 @@ export default class VideoPlayer extends Component {
       ? this.renderNullControl()
       : this.renderPlayPause();
 
+    const muteControl = this.props.disableMute
+      ? this.renderNullControl()
+      : this.renderMute();
+
     return (
       <Animated.View
         style={[
@@ -1070,9 +1111,11 @@ export default class VideoPlayer extends Component {
           {seekbarControl}
           <SafeAreaView
             style={[styles.controls.row, styles.controls.bottomControlGroup]}>
-            {playPauseControl}
-            {this.renderTitle()}
-            {timerControl}
+            <View style={{flexDirection: 'row'}}>
+              {playPauseControl}
+              {timerControl}
+            </View>
+            {muteControl}
           </SafeAreaView>
         </ImageBackground>
       </Animated.View>
@@ -1090,7 +1133,7 @@ export default class VideoPlayer extends Component {
         {...this.player.seekPanResponder.panHandlers}>
         <View
           style={styles.seekbar.track}
-          onLayout={event =>
+          onLayout={(event) =>
             (this.player.seekerWidth = event.nativeEvent.layout.width)
           }
           pointerEvents={'none'}>
@@ -1128,6 +1171,7 @@ export default class VideoPlayer extends Component {
       this.state.paused === true
         ? require('./assets/img/play.png')
         : require('./assets/img/pause.png');
+
     return this.renderControl(
       <Image source={source} />,
       this.methods.togglePlayPause,
@@ -1161,7 +1205,6 @@ export default class VideoPlayer extends Component {
     return this.renderControl(
       <Text style={styles.controls.timerText}>{this.calculateTime()}</Text>,
       this.methods.toggleTimer,
-      styles.controls.timer,
     );
   }
 
@@ -1220,7 +1263,7 @@ export default class VideoPlayer extends Component {
         <View style={[styles.player.container, this.styles.containerStyle]}>
           <Video
             {...this.props}
-            ref={videoPlayer => (this.player.ref = videoPlayer)}
+            ref={(videoPlayer) => (this.player.ref = videoPlayer)}
             resizeMode={this.state.resizeMode}
             volume={this.state.volume}
             paused={this.state.paused}
@@ -1317,7 +1360,8 @@ const styles = {
       resizeMode: 'stretch',
     },
     control: {
-      padding: 16,
+      paddingVertical: 16,
+      paddingHorizontal: 10,
     },
     text: {
       backgroundColor: 'transparent',
@@ -1365,7 +1409,6 @@ const styles = {
     },
     playPause: {
       position: 'relative',
-      width: 80,
       zIndex: 0,
     },
     title: {
@@ -1384,7 +1427,6 @@ const styles = {
       backgroundColor: 'transparent',
       color: '#FFF',
       fontSize: 11,
-      textAlign: 'right',
     },
   }),
   volume: StyleSheet.create({
@@ -1411,6 +1453,7 @@ const styles = {
       marginTop: -24,
       marginLeft: -24,
       padding: 16,
+      zIndex: 1,
     },
     icon: {
       marginLeft: 7,
