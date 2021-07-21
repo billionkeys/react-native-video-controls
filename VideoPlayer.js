@@ -766,13 +766,14 @@ export default class VideoPlayer extends Component {
    * bar based on the volume property supplied to it.
    */
   componentDidMount() {
-    const position = this.calculateVolumePositionFromVolume();
-    let state = this.state;
+    const position = this.state.muted
+      ? 0
+      : this.calculateVolumePositionFromVolume();
     this.setVolumePosition(position);
-    state.volumeOffset = position;
     this.mounted = true;
-
-    this.setState(state);
+    this.setState({
+      volumeOffset: position,
+    });
   }
 
   /**
