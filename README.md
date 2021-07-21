@@ -16,11 +16,11 @@ By default, tapping the screen anywhere will show the player controls. After 10s
 
 ## Installation
 
-Run `npm install --save react-native-video react-native-video-controls`
+Run `npm install --save react-native-video @billionkeys/react-native-video-controls`
 
 Then run `react-native link react-native-video`
 
-If you're using RN < 39 run `npm install --save react-native-video-controls@1.0.1`. Note this version includes `react-native-video` as a normal dependency instead of a peer-dependency.
+If you're using RN < 39 run `npm install --save @billionkeys/react-native-video-controls@1.0.1`. Note this version includes `react-native-video` as a normal dependency instead of a peer-dependency.
 
 ## Usage
 
@@ -30,7 +30,7 @@ For basic operation the `<VideoPlayer>` component requires a video source and a 
 
 ```javascript
 // At the top where our imports are...
-import VideoPlayer from 'react-native-video-controls';
+import VideoPlayer from '@billionkeys/react-native-video-controls';
 
 // in the component's render() function
 <VideoPlayer
